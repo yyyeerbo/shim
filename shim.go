@@ -63,7 +63,7 @@ func (s *shim) proxyStdio(wg *sync.WaitGroup, terminal bool) {
 	inPipe, outPipe, errPipe := shimStdioPipe(s.ctx, s.agent, s.containerID, s.execID)
 	go func() {
 		_, err1 := io.Copy(inPipe, os.Stdin)
-		_, err2 := s.agent.CloseStdin(s.ctx, &pb.CloseStdinRequest{
+		_, err2 := s.agent.AgentServiceClient.CloseStdin(s.ctx, &pb.CloseStdinRequest{
 			ContainerId: s.containerID,
 			ExecId:      s.execID})
 		if err1 != nil {
@@ -135,7 +135,7 @@ func (s *shim) handleSignals(ctx context.Context, tty *os.File) chan os.Signal {
 			}
 
 			// forward this signal to container
-			_, err := s.agent.SignalProcess(s.ctx, &pb.SignalProcessRequest{
+			_, err := s.agent.AgentServiceClient.SignalProcess(s.ctx, &pb.SignalProcessRequest{
 				ContainerId: s.containerID,
 				ExecId:      s.execID,
 				Signal:      uint32(sysSig)})
@@ -161,7 +161,7 @@ func (s *shim) resizeTty(fromTty *os.File) error {
 		return nil
 	}
 
-	_, err = s.agent.TtyWinResize(s.ctx, &pb.TtyWinResizeRequest{
+	_, err = s.agent.AgentServiceClient.TtyWinResize(s.ctx, &pb.TtyWinResizeRequest{
 		ContainerId: s.containerID,
 		ExecId:      s.execID,
 		Row:         uint32(ws.Height),
@@ -180,7 +180,7 @@ func (s *shim) wait() (int32, error) {
 	span, _ := trace(s.ctx, "wait")
 	defer span.Finish()
 
-	resp, err := s.agent.WaitProcess(s.ctx, &pb.WaitProcessRequest{
+	resp, err := s.agent.AgentServiceClient.WaitProcess(s.ctx, &pb.WaitProcessRequest{
 		ContainerId: s.containerID,
 		ExecId:      s.execID})
 	if err != nil {

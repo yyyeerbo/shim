@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -619,6 +620,10 @@ func setupDNS(dns []string) (err error) {
 		agentLog.Debug("Did not set sandbox DNS as DNS not received as part of grpc request.")
 		return nil
 	}
+
+	if err := os.MkdirAll(filepath.Dir(kataGuestSandboxDNSFile), 0700); err != nil {
+		return err
+	}
 	if file, err = os.Create(kataGuestSandboxDNSFile); err != nil {
 		return err
 	}
@@ -664,7 +669,7 @@ func (s *sandbox) removeNetwork() error {
 // Bring up localhost network interface.
 func (s *sandbox) handleLocalhost() error {
 	span, _ := s.trace("handleLocalhost")
-	defer span.Finish()
+	defer span.finish()
 
 	// If not running as the init daemon, there is nothing to do as the
 	// localhost interface will already exist.

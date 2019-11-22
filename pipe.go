@@ -10,7 +10,7 @@ import (
 	"io"
 
 	context "golang.org/x/net/context"
-	"google.golang.org/grpc"
+//	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
 	pb "github.com/kata-containers/agent/protocols/grpc"
@@ -25,7 +25,7 @@ type inPipe struct {
 }
 
 func (p *inPipe) Write(data []byte) (n int, err error) {
-	resp, err := p.agent.WriteStdin(p.ctx, &pb.WriteStreamRequest{
+	resp, err := p.agent.AgentServiceClient.WriteStdin(p.ctx, &pb.WriteStreamRequest{
 		ContainerId: p.containerID,
 		ExecId:      p.execID,
 		Data:        data})
@@ -37,14 +37,14 @@ func (p *inPipe) Write(data []byte) (n int, err error) {
 }
 
 func (p *inPipe) Close() error {
-	_, err := p.agent.CloseStdin(p.ctx, &pb.CloseStdinRequest{
+	_, err := p.agent.AgentServiceClient.CloseStdin(p.ctx, &pb.CloseStdinRequest{
 		ContainerId: p.containerID,
 		ExecId:      p.execID})
 
 	return err
 }
 
-type readFn func(context.Context, *pb.ReadStreamRequest, ...grpc.CallOption) (*pb.ReadStreamResponse, error)
+type readFn func(context.Context, *pb.ReadStreamRequest) (*pb.ReadStreamResponse, error)
 
 func pipeRead(ctx context.Context, containerID, execID string, data []byte, read readFn) (n int, err error) {
 	resp, err := read(ctx, &pb.ReadStreamRequest{
@@ -76,7 +76,7 @@ type outPipe struct {
 }
 
 func (p *outPipe) Read(data []byte) (n int, err error) {
-	return pipeRead(p.ctx, p.containerID, p.execID, data, p.agent.ReadStdout)
+	return pipeRead(p.ctx, p.containerID, p.execID, data, p.agent.AgentServiceClient.ReadStdout)
 }
 
 type errPipe struct {
@@ -87,7 +87,7 @@ type errPipe struct {
 }
 
 func (p *errPipe) Read(data []byte) (n int, err error) {
-	return pipeRead(p.ctx, p.containerID, p.execID, data, p.agent.ReadStderr)
+	return pipeRead(p.ctx, p.containerID, p.execID, data, p.agent.AgentServiceClient.ReadStderr)
 }
 
 func shimStdioPipe(ctx context.Context, agent *shimAgent, containerID, execID string) (io.WriteCloser, io.Reader, io.Reader) {
